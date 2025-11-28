@@ -410,8 +410,10 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
     return assertion;
 }
 
-// Read an expression from the token stream. Returns true iff okay.
-bool readexpression
+enum class verify_result { Valid, Invalid, Incomplete };
+
+// Read an expression from the token stream.
+verify_result readexpression
     ( char stattype, std::string label, std::string terminator,
       Expression * exp)
 {
@@ -419,7 +421,7 @@ bool readexpression
     {
         std::cerr << "Unfinished $" << stattype << " statement " << label
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::string type(tokens.front());
@@ -428,7 +430,7 @@ bool readexpression
     {
         std::cerr << "First symbol in $" << stattype << " statement " << label
                   << " is " << type << " which is not a constant" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop();
@@ -448,7 +450,7 @@ bool readexpression
                       << " token " << token
                       << " found which is not a constant or variable in an"
                          " active $f statement" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         exp->push_back(token);
@@ -458,12 +460,12 @@ bool readexpression
     {
         std::cerr << "Unfinished $" << stattype << " statement " << label
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop(); // Discard terminator token
 
-    return true;
+    return verify_result::Valid;
 }
 
 // Make a substitution of variables. The result is put in "destination",
@@ -494,8 +496,8 @@ void makesubstitution
 
 // Get the raw numbers from compressed proof format.
 // The letter Z is translated as 0.
-bool getproofnumbers(std::string label, std::string proof,
-                     std::vector<std::size_t> * proofnumbers)
+verify_result getproofnumbers(
+    std::string label, std::string proof, std::vector<std::size_t> * proofnumbers)
 {
     std::size_t const size_max(std::numeric_limits<std::size_t>::max());
 
@@ -512,7 +514,7 @@ bool getproofnumbers(std::string label, std::string proof,
             {
                 std::cerr << "Overflow computing numbers in compressed proof "
                              "of " << label << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
 
             proofnumbers->push_back(20 * num + addval);
@@ -527,7 +529,7 @@ bool getproofnumbers(std::string label, std::string proof,
             {
                 std::cerr << "Overflow computing numbers in compressed proof "
                              "of " << label << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
 
             num = 5 * num + addval;
@@ -539,7 +541,7 @@ bool getproofnumbers(std::string label, std::string proof,
             {
                 std::cerr << "Stray Z found in compressed proof of "
                           << label << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
 
             proofnumbers->push_back(0);
@@ -551,23 +553,23 @@ bool getproofnumbers(std::string label, std::string proof,
     {
         std::cerr << "Compressed proof of theorem " << label
                   << " ends in unfinished number" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
-    return true;
+    return verify_result::Valid;
 }
 
 // Subroutine for proof verification. Verify a proof step referencing an
 // assertion (i.e., not a hypothesis).
-bool verifyassertionref(std::string thlabel, std::string reflabel,
-    std::vector<Expression> * stack)
+verify_result verifyassertionref(
+    std::string thlabel, std::string reflabel, std::vector<Expression> * stack)
 {
     Assertion const & assertion(assertions.find(reflabel)->second);
     if (stack->size() < assertion.hypotheses.size())
     {
         std::cerr << "In proof of theorem " << thlabel
                   << " not enough items found on stack" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::vector<Expression>::size_type const base
@@ -588,7 +590,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
             {
                 std::cout << "In proof of theorem " << thlabel
                           << " unification failed" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
             Expression & subst(substitutions.insert
                 (std::make_pair(hypothesis.first[1],
@@ -605,7 +607,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
             {
                 std::cerr << "In proof of theorem "  << thlabel
                           << " unification failed" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
         }
     }
@@ -648,7 +650,7 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
                     std::cerr << "In proof of theorem " << thlabel
                               << " disjoint variable restriction violated"
                               << std::endl;
-                    return false;
+                    return verify_result::Invalid;
                 }
             }
         }
@@ -659,15 +661,14 @@ bool verifyassertionref(std::string thlabel, std::string reflabel,
     makesubstitution(assertion.expression, substitutions, &dest);
     stack->push_back(dest);
 
-    return true;
+    return verify_result::Valid;
 }
 
 // Verify a regular proof. The "proof" argument should be a non-empty sequence
-// of valid labels. Return true iff the proof is correct.
-bool verifyregularproof
-     (std::string label, Assertion const & theorem,
-      std::vector<std::string> const & proof
-     )
+// of valid labels.
+verify_result verifyregularproof(
+    std::string label, Assertion const & theorem,
+    std::vector<std::string> const & proof)
 {
     std::vector<Expression> stack;
     for (std::vector<std::string>::const_iterator proofstep(proof.begin());
@@ -683,9 +684,9 @@ bool verifyregularproof
         }
 
         // It must be an axiom or theorem
-        bool const okay(verifyassertionref(label, *proofstep, &stack));
-        if (!okay)
-            return false;
+        verify_result const result(verifyassertionref(label, *proofstep, &stack));
+        if (result != verify_result::Valid)
+            return result;
     }
 
     if (stack.size() != 1)
@@ -693,7 +694,7 @@ bool verifyregularproof
         std::cerr << "Proof of theorem " << label
                   << " does not end with only one item on the stack"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (stack[0] != theorem.expression)
@@ -702,11 +703,11 @@ bool verifyregularproof
                   << std::endl; 
     }
 
-    return true;
+    return verify_result::Valid;
 }
 
 // Verify a compressed proof
-bool verifycompressedproof
+verify_result verifycompressedproof
     (std::string label, Assertion const & theorem,
      std::vector<std::string> const & labels,
      std::vector<std::size_t> const & proofnumbers)
@@ -748,9 +749,9 @@ bool verifycompressedproof
             }
 
             // It must be an axiom or theorem
-            bool const okay(verifyassertionref(label, proofstep, &stack));
-            if (!okay)
-                return false;
+            verify_result const result(verifyassertionref(label, proofstep, &stack));
+            if (result != verify_result::Valid)
+                return result;
         }
         else // Must refer to saved step
         {
@@ -758,7 +759,7 @@ bool verifycompressedproof
             {
                 std::cerr << "Number in compressed proof of " << label
                           << " is too high" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
 
             stack.push_back(savedsteps[*iter - labelt - 1]);
@@ -770,7 +771,7 @@ bool verifycompressedproof
         std::cerr << "Proof of theorem " << label
                   << " does not end with only one item on the stack"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (stack[0] != theorem.expression)
@@ -779,17 +780,16 @@ bool verifycompressedproof
                   << std::endl; 
     }
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $p statement. Return true iff okay.
-bool parsep(std::string label)
+verify_result parsep(std::string label)
 {
     Expression newtheorem;
-    bool const okay(readexpression('p', label, "$=", &newtheorem));
-    if (!okay)
+    verify_result const result(readexpression('p', label, "$=", &newtheorem));
+    if (result != verify_result::Valid)
     {
-        return false;
+        return result;
     }
 
     Assertion const & assertion(constructassertion(label, newtheorem));
@@ -799,7 +799,7 @@ bool parsep(std::string label)
     if (tokens.empty())
     {
         std::cerr << "Unfinished $p statement " << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (tokens.front() == "(")
@@ -819,7 +819,7 @@ bool parsep(std::string label)
             {
                 std::cerr << "Proof of theorem " << label
                           << " refers to itself" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
             else if (std::find
                     (assertion.hypotheses.begin(), assertion.hypotheses.end(),
@@ -828,7 +828,7 @@ bool parsep(std::string label)
                 std::cerr << "Compressed proof of theorem " << label
                           << " has mandatory hypothesis " << token
                           << " in label list" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
             else if (assertions.find(token) == assertions.end()
                   && !isactivehyp(token))
@@ -836,14 +836,14 @@ bool parsep(std::string label)
                 std::cerr << "Proof of theorem " << label << " refers to "
                           << token << " which is not an active statement"
                           << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
         }
 
         if (tokens.empty())
         {
             std::cerr << "Unfinished $p statement " << label << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         tokens.pop(); // Discard ) token
@@ -860,20 +860,20 @@ bool parsep(std::string label)
             {
                 std::cerr << "Bogus character found in compressed proof of "
                           << label << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
         }
 
         if (tokens.empty())
         {
             std::cerr << "Unfinished $p statement " << label << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         if (proof.empty())
         {
             std::cerr << "Theorem " << label << " has no proof" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         tokens.pop(); // Discard $. token
@@ -882,18 +882,18 @@ bool parsep(std::string label)
         {
             std::cerr << "Warning: Proof of theorem " << label
                       << " is incomplete" << std::endl;
-            return true; // Continue processing file
+            return verify_result::Incomplete;
         }
 
         std::vector<std::size_t> proofnumbers;
         proofnumbers.reserve(proof.size()); // Preallocate for efficiency
-        bool okay(getproofnumbers(label, proof, &proofnumbers));
-        if (!okay)
-            return false;
+        verify_result result(getproofnumbers(label, proof, &proofnumbers));
+        if (result != verify_result::Valid)
+            return result;
 
-        okay = verifycompressedproof(label, assertion, labels, proofnumbers);
-        if (!okay)
-            return false;
+        result = verifycompressedproof(label, assertion, labels, proofnumbers);
+        if (result != verify_result::Valid)
+            return result;
     }
     else
     {
@@ -911,7 +911,7 @@ bool parsep(std::string label)
             {
                 std::cerr << "Proof of theorem " << label
                           << " refers to itself" << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
             else if (assertions.find(token) == assertions.end()
                   && !isactivehyp(token))
@@ -919,20 +919,20 @@ bool parsep(std::string label)
                 std::cerr << "Proof of theorem " << label << " refers to "
                           << token << " which is not an active statement"
                           << std::endl;
-                return false;
+                return verify_result::Invalid;
             }
         }
 
         if (tokens.empty())
         {
             std::cerr << "Unfinished $p statement " << label << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         if (proof.empty())
         {
             std::cerr << "Theorem " << label << " has no proof" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         tokens.pop(); // Discard $. token
@@ -941,56 +941,56 @@ bool parsep(std::string label)
         {
             std::cerr << "Warning: Proof of theorem " << label
                       << " is incomplete" << std::endl;
-            return true; // Continue processing file
+            return verify_result::Incomplete;
         }
 
-        bool okay(verifyregularproof(label, assertion, proof));
-        if (!okay)
-            return false;
+        verify_result result(verifyregularproof(label, assertion, proof));
+        if (result != verify_result::Valid)
+            return result;
     }
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $e statement. Return true iff okay.
-bool parsee(std::string label)
+// Parse $e statement.
+verify_result parsee(std::string label)
 {
     Expression newhyp;
-    bool const okay(readexpression('e', label, "$.", &newhyp));
-    if (!okay)
+    verify_result const result(readexpression('e', label, "$.", &newhyp));
+    if (result != verify_result::Valid)
     {
-        return false;
+        return result;
     }
 
     // Create new essential hypothesis
     hypotheses.insert(std::make_pair(label, std::make_pair(newhyp, false)));
     scopes.back().activehyp.push_back(label);
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $a statement. Return true iff okay.
-bool parsea(std::string label)
+// Parse $a statement.
+verify_result parsea(std::string label)
 {
     Expression newaxiom;
-    bool const okay(readexpression('a', label, "$.", &newaxiom));
-    if (!okay)
+    verify_result const result(readexpression('a', label, "$.", &newaxiom));
+    if (result != verify_result::Valid)
     {
-        return false;
+        return result;
     }
 
     constructassertion(label, newaxiom);
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $f statement. Return true iff okay.
-bool parsef(std::string label)
+// Parse $f statement.
+verify_result parsef(std::string label)
 {
     if (tokens.empty())
     {
         std::cerr << "Unfinished $f statement" << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::string type(tokens.front());
@@ -999,7 +999,7 @@ bool parsef(std::string label)
     {
         std::cerr << "First symbol in $f statement " << label << " is "
                   << type << " which is not a constant" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop();
@@ -1007,7 +1007,7 @@ bool parsef(std::string label)
     if (tokens.empty())
     {
         std::cerr << "Unfinished $f statement " << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::string variable(tokens.front());
@@ -1016,14 +1016,14 @@ bool parsef(std::string label)
         std::cerr << "Second symbol in $f statement " << label << " is "
                   << variable << " which is not an active variable"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
     if (!getfloatinghyp(variable).empty())
     {
         std::cerr << "The variable " << variable
                   << " appears in a second $f statement "
                   << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop();
@@ -1031,14 +1031,14 @@ bool parsef(std::string label)
     if (tokens.empty())
     {
         std::cerr << "Unfinished $f statement" << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (tokens.front() != "$.")
     {
         std::cerr << "Expected end of $f statement " << label
                   << " but found " << tokens.front() << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop(); // Discard $. token
@@ -1051,70 +1051,70 @@ bool parsef(std::string label)
     scopes.back().activehyp.push_back(label);
     scopes.back().floatinghyp.insert(std::make_pair(variable, label));
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse labeled statement. Return true iff okay.
-bool parselabel(std::string label)
+// Parse labeled statement.
+verify_result parselabel(std::string label)
 {
     if (constants.find(label) != constants.end())
     {
         std::cerr << "Attempt to reuse constant " << label << " as a label"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (variables.find(label) != variables.end())
     {
         std::cerr << "Attempt to reuse variable " << label << " as a label"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (labelused(label))
     {
         std::cerr << "Attempt to reuse label " << label << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (tokens.empty())
     {
         std::cerr << "Unfinished labeled statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::string const type(tokens.front());
     tokens.pop();
 
-    bool okay(true);
+    verify_result result;
     if (type == "$p")
     {
-        okay = parsep(label);
+        result = parsep(label);
     }
     else if (type == "$e")
     {
-        okay = parsee(label);
+        result = parsee(label);
     }
     else if (type == "$a")
     {
-        okay = parsea(label);
+        result = parsea(label);
     }
     else if (type == "$f")
     {
-        okay = parsef(label);
+        result = parsef(label);
     }
     else
     {
         std::cerr << "Unexpected token " << type << " encountered"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
-    return okay;
+    return result;
 }
 
-// Parse $d statement. Return true iff okay.
-bool parsed()
+// Parse $d statement.
+verify_result parsed()
 {
     std::set<std::string> dvars;
 
@@ -1128,7 +1128,7 @@ bool parsed()
         {
             std::cerr << "Token " << token << " is not an active variable, "
                       << "but was found in a $d statement" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
 
         bool const duplicate(!dvars.insert(token).second);
@@ -1136,20 +1136,20 @@ bool parsed()
         {
             std::cerr << "$d statement mentions " << token << " twice"
                       << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
     }
 
     if (tokens.empty())
     {
         std::cerr << "Unterminated $d statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (dvars.size() < 2)
     {
         std::cerr << "Not enough items in $d statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     // Record it
@@ -1157,17 +1157,17 @@ bool parsed()
 
     tokens.pop(); // Discard $. token
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $c statement. Return true iff okay.
-bool parsec()
+// Parse $c statement.
+verify_result parsec()
 {
     if (scopes.size() > 1)
     {
         std::cerr << "$c statement occurs in inner block"
                   << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     std::string token;
@@ -1181,48 +1181,48 @@ bool parsec()
         {
             std::cerr << "Attempt to declare " << token
                       << " as a constant" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         if (variables.find(token) != variables.end())
         {
             std::cerr << "Attempt to redeclare variable " << token
                       << " as a constant" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         if (labelused(token))
         {
             std::cerr << "Attempt to reuse label " << token
                       << " as a constant" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         bool const alreadydeclared(!constants.insert(token).second);
         if (alreadydeclared)
         {
             std::cerr << "Attempt to redeclare constant " << token
                       << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
     }
 
     if (tokens.empty())
     {
         std::cerr << "Unterminated $c statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (listempty)
     {
         std::cerr << "Empty $c statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop(); // Discard $. token
 
-    return true;
+    return verify_result::Valid;
 }
 
-// Parse $v statement. Return true iff okay.
-bool parsev()
+// Parse $v statement.
+verify_result parsev()
 {
     std::string token;
     bool listempty(true);
@@ -1235,26 +1235,26 @@ bool parsev()
         {
             std::cerr << "Attempt to declare " << token
                       << " as a variable" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         if (constants.find(token) != constants.end())
         {
             std::cerr << "Attempt to redeclare constant " << token
                       << " as a variable" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         if (labelused(token))
         {
             std::cerr << "Attempt to reuse label " << token
                       << " as a variable" << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         bool const alreadyactive(isactivevariable(token));
         if (alreadyactive)
         {
             std::cerr << "Attempt to redeclare active variable " << token
                       << std::endl;
-            return false;
+            return verify_result::Invalid;
         }
         variables.insert(token);
         scopes.back().activevariables.insert(token);
@@ -1263,18 +1263,18 @@ bool parsev()
     if (tokens.empty())
     {
         std::cerr << "Unterminated $v statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     if (listempty)
     {
         std::cerr << "Empty $v statement" << std::endl;
-        return false;
+        return verify_result::Invalid;
     }
 
     tokens.pop(); // Discard $. token
 
-    return true;
+    return verify_result::Valid;
 }
 
 }
@@ -1293,20 +1293,22 @@ int main(int argc, char ** argv)
 
     scopes.push_back(Scope());
 
+    bool incompleteProofFound(false);
+
     while (!tokens.empty())
     {
         std::string const token(tokens.front());
         tokens.pop();
 
-        bool okay(true);
+        verify_result result = verify_result::Valid;
 
         if (islabeltoken(token))
         {
-            okay = parselabel(token);
+            result = parselabel(token);
         }
         else if (token == "$d")
         {
-            okay = parsed();
+            result = parsed();
         }
         else if (token == "${")
         {
@@ -1323,11 +1325,11 @@ int main(int argc, char ** argv)
         }
         else if (token == "$c")
         {
-            okay = parsec();
+            result = parsec();
         }
         else if (token == "$v")
         {
-            okay = parsev();
+            result = parsev();
         }
         else
         {
@@ -1335,8 +1337,10 @@ int main(int argc, char ** argv)
                       << std::endl;
             return EXIT_FAILURE;
         }
-        if (!okay)
+        if (result == verify_result::Invalid)
             return EXIT_FAILURE;
+        else if (result == verify_result::Incomplete)
+            incompleteProofFound = true;
     }
 
     if (scopes.size() > 1)
@@ -1345,5 +1349,5 @@ int main(int argc, char ** argv)
         return EXIT_FAILURE;
     }
 
-    return 0;
+    return incompleteProofFound ? EXIT_FAILURE : 0;
 }
