@@ -1,0 +1,27 @@
+#!/bin/bash
+
+result=0
+
+# Files that should pass the verifier
+cd pass || exit -1
+for mmfile in *.mm; do
+    if ../../checkmm "$mmfile"; then
+        echo "pass/$mmfile: succeeded"
+    else
+        echo "pass/$mmfile: failed"
+        result=-1
+    fi
+done
+
+# Files that should not pass the verifier
+cd ../fail || exit -1
+for mmfile in *.mm; do
+    if ../../checkmm "$mmfile" 2>/dev/null; then
+        echo "fail/$mmfile: failed"
+        result=-1
+    else
+        echo "fail/$mmfile: succeeded"
+    fi
+done
+
+exit "$result"
