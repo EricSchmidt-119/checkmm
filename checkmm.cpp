@@ -305,6 +305,12 @@ bool readtokens(std::string const filename)
         if (token == "$[")
         {
             infileinclusion = true;
+
+            // Leave the $[ token in the vector of tokens.
+            // This will allow us to enforce that file inclusion does
+            // not occur in the middle of a command or in an inner scope.
+            tokens.push(token);
+
             continue;
         }
 
@@ -1330,6 +1336,15 @@ int main(int argc, char ** argv)
         else if (token == "$v")
         {
             result = parsev();
+        }
+        else if (token == "$[")
+        {
+            if (scopes.size() > 1)
+            {
+                std::cerr << "File inclusion command found in inner scope"
+                    << std::endl;
+                return EXIT_FAILURE;
+            }
         }
         else
         {
