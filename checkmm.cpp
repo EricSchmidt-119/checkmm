@@ -298,6 +298,12 @@ bool readtokens(std::string const filename)
                     return false;
                 infileinclusion = false;
                 newfilename.clear();
+
+                // Leave the $] token in the vector of tokens.
+                // This will allow us to enforce that included files
+                // do not contain incomplete statements.
+                tokens.push(token);
+
                 continue;
             }
         }
@@ -312,6 +318,12 @@ bool readtokens(std::string const filename)
             tokens.push(token);
 
             continue;
+        }
+
+        if (token == "$]")
+        {
+            std::cerr << "Stray closing file inclusion delimiter" << std::endl;
+            return false;
         }
 
         tokens.push(token);
@@ -1345,6 +1357,11 @@ int main(int argc, char ** argv)
                     << std::endl;
                 return EXIT_FAILURE;
             }
+        }
+        else if (token == "$]")
+        {
+            // The closing delimiter occurs outside of any command.
+            // Discard it.
         }
         else
         {
