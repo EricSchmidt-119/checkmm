@@ -1353,15 +1353,19 @@ int main(int argc, char ** argv)
         {
             if (scopes.size() > 1)
             {
-                std::cerr << "File inclusion command found in inner scope"
+                std::cerr << "File inclusion command begun in inner scope"
                     << std::endl;
                 return EXIT_FAILURE;
             }
         }
         else if (token == "$]")
         {
-            // The closing delimiter occurs outside of any command.
-            // Discard it.
+            if (scopes.size() > 1)
+            {
+                std::cerr << "File inclusion command ended in inner scope"
+                    << std::endl;
+                return EXIT_FAILURE;
+            }
         }
         else
         {
