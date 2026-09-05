@@ -265,11 +265,6 @@ bool readtokens(std::string const filename)
         }
 
         // Not in comment
-        if (token == "$(")
-        {
-            incomment = true;
-            continue;
-        }
 
         if (infileinclusion)
         {
@@ -306,6 +301,14 @@ bool readtokens(std::string const filename)
 
                 continue;
             }
+        }
+
+        // Not in comment or file inclusion
+
+        if (token == "$(")
+        {
+            incomment = true;
+            continue;
         }
 
         if (token == "$[")
