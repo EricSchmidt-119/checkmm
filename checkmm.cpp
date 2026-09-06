@@ -722,6 +722,7 @@ verify_result verifyregularproof(
     {
         std::cerr << "Proof of theorem " << label << " proves wrong statement"
                   << std::endl; 
+        return verify_result::Invalid;
     }
 
     return verify_result::Valid;
@@ -798,7 +799,8 @@ verify_result verifycompressedproof
     if (stack[0] != theorem.expression)
     {
         std::cerr << "Proof of theorem " << label << " proves wrong statement"
-                  << std::endl; 
+                  << std::endl;
+        return verify_result::Invalid;
     }
 
     return verify_result::Valid;
