@@ -110,10 +110,10 @@ $}
 
 $( *** Section 3: $f and $e hypotheses interspersed *** $)
 
-$v p $.
-$v q $.
-
 ${
+  $v p $.
+  $v q $.
+
   vp   $f A p $.
   a7.1 $e |- p $.
   vq   $f A q $.
@@ -121,10 +121,10 @@ ${
   axiom7 $a |- p q $.
 $}
 
-$v p2 $.
-$v q2 $.
-
 ${
+  $v p2 $.
+  $v q2 $.
+
   vp2  $f A p2 $.
   vq2  $f A q2 $.
   t8.1 $e |- p2 $.
