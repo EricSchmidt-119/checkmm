@@ -13,6 +13,13 @@ ccv $a class _V $.
 
 cat $a class A B $.
 
+${
+  $d A B $.
+  $( Prove a theorem with an unnecessary DV condition. $)
+  catt  $p class A B $= cA cB cat $.
+  cattc $p class A B $= ( cat ) ABC $.
+$}
+
 $( Create two versions of the same axiom, one with a DV condition,
    the other without. $)
 ${
