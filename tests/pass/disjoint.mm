@@ -2,12 +2,16 @@ $( Test disjoint variable conditions $)
 
 $c |- class = _V $.
 
-$v A B C D  $.
+$v A B C D E F G H $.
 
 cA $f class A $.
 cB $f class B $.
 cC $f class C $.
 cD $f class D $.
+cE $f class E $.
+cF $f class F $.
+cG $f class G $.
+cH $f class H $.
 
 ccv $a class _V $.
 
@@ -90,9 +94,27 @@ ${
 $}
 
 ${
+  $d A E $. $d A F $. $d A G $. $d A H $.
+  $d B E $. $d B F $. $d B G $. $d B H $.
+  $d C E $. $d C F $. $d C G $. $d C H $.
+  $d D E $. $d D F $. $d D G $. $d D H $.
+
+  theorem10  $p |- A B C D = E F G H $=
+    cA cB cC cD cat cat cat cE cF cG cH cat cat cat axiom $.
+  theorem10c $p |- A B C D = E F G H $= ( cat axiom ) ABCDIIIEFGHIIIJ $.
+$}
+
+${
+  $d A B C D E F G H $.
+  theorem10A  $p |- A B C D = E F G H $=
+    cA cB cC cD cat cat cat cE cF cG cH cat cat cat axiom $.
+  theorem10Ac $p |- A B C D = E F G H $= ( cat axiom ) ABCDIIIEFGHIIIJ $.
+$}
+
+${
   $d C D $.
-  theorem10  $p |- C _V = D _V $= cC ccv cat cD ccv cat axiom $.
-  theorem10c $p |- C _V = D _V $= ( ccv cat axiom ) ACDBCDE $.
+  theorem11  $p |- C _V = D _V $= cC ccv cat cD ccv cat axiom $.
+  theorem11c $p |- C _V = D _V $= ( ccv cat axiom ) ACDBCDE $.
 $}
 
 $( Now prove the same theorems without a DV condition. $)
@@ -137,47 +159,47 @@ $}
 
 ${
   $d A C $.
-  theorem11  $p |- A = A $= cA cC cA cA cC axiom cC cA axiom eqtri $.
-  theorem11c $p |- A = A $= ( cC axiom eqtri ) ABAABCBACD $.
+  theorem12  $p |- A = A $= cA cC cA cA cC axiom cC cA axiom eqtri $.
+  theorem12c $p |- A = A $= ( cC axiom eqtri ) ABAABCBACD $.
 $}
 
 ${
-  nd-theorem11  $p |- A = A $= cA cC cA cA cC nd-axiom cC cA nd-axiom eqtri $.
-  nd-theorem11c $p |- A = A $= ( cC nd-axiom eqtri ) ABAABCBACD $.
+  nd-theorem12  $p |- A = A $= cA cC cA cA cC nd-axiom cC cA nd-axiom eqtri $.
+  nd-theorem12c $p |- A = A $= ( cC nd-axiom eqtri ) ABAABCBACD $.
 $}
 
 ${
-  theorem12  $p |- C = C $= cC theorem11 $.
-  theorem12c $p |- C = C $= ( theorem11 ) AB $.
+  theorem13  $p |- C = C $= cC theorem12 $.
+  theorem13c $p |- C = C $= ( theorem12 ) AB $.
 $}
 
 ${
-  theorem13  $p |- C = C $= cC theorem11c $.
-  theorem13c $p |- C = C $= ( theorem11c ) AB $.
+  theorem14  $p |- C = C $= cC theorem12c $.
+  theorem14c $p |- C = C $= ( theorem12c ) AB $.
 $}
 
 ${
   $d A C $. $d C D $. $d D B $.
-  theorem14 $p |- A = B $=
+  theorem15 $p |- A = B $=
     cA cD cB
     cA cC cD
     cA cC axiom    $( |- A = C $)
     cC cD axiom    $( |- C = D $)
     eqtri          $( |- A = D $)
     cD cB axiom    $( |- D = B $)
-    eqtri $.       $( |- A = B $) 
+    eqtri $.       $( |- A = B $)
 
-  theorem14c $p |- A = B $= ( cC cD axiom eqtri ) ADBACDACECDEFDBEF $.
+  theorem15c $p |- A = B $= ( cC cD axiom eqtri ) ADBACDACECDEFDBEF $.
 $}
 
 ${
-  theorem15  $p |- C = D $= cC cD theorem14 $.
-  theorem15c $p |- C = D $= ( theorem14 ) ABC $. 
+  theorem16  $p |- C = D $= cC cD theorem15 $.
+  theorem16c $p |- C = D $= ( theorem15 ) ABC $.
 $}
 
 ${
-  theorem16  $p |- C = D $= cC cD theorem14c $.
-  theorem16c $p |- C = D $= ( theorem14c ) ABC $. 
+  theorem17  $p |- C = D $= cC cD theorem15c $.
+  theorem17c $p |- C = D $= ( theorem15c ) ABC $.
 $}
 
 $( Test with nested scopes $)
