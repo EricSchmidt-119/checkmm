@@ -60,7 +60,9 @@ typedef std::pair<Expression, bool> Hypothesis;
 
 std::unordered_map<std::string, Hypothesis> hypotheses;
 
-std::unordered_set<std::string> variables;
+// Map from variables to typecodes (or empty string if no typecode has been
+// assigned).
+std::unordered_map<std::string, std::string> variables;
 
 // An axiom or a theorem.
 struct Assertion
@@ -1048,6 +1050,17 @@ verify_result parsef(std::string label)
                   << label << std::endl;
         return verify_result::Invalid;
     }
+    auto iter = variables.find(variable);
+    if (iter->second.empty())
+    {
+        iter->second = type;
+    }
+    else if (iter->second != type)
+    {
+        std::cerr << "Variable " << variable << " originally declared as type "
+                  << iter->second << " redeclared as type " << type << std::endl;
+        return verify_result::Invalid;
+    }
 
     tokens.pop();
 
@@ -1279,7 +1292,7 @@ verify_result parsev()
                       << std::endl;
             return verify_result::Invalid;
         }
-        variables.insert(token);
+        variables.emplace(token, std::string());
         scopes.back().activevariables.insert(token);
     }
 
