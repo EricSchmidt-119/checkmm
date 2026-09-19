@@ -611,7 +611,7 @@ verify_result verifyassertionref(
             // Floating hypothesis of the referenced assertion
             if (hypothesis.first[0] != (*stack)[base + i][0])
             {
-                std::cout << "In proof of theorem " << thlabel
+                std::cerr << "In proof of theorem " << thlabel
                           << " unification failed" << std::endl;
                 return verify_result::Invalid;
             }
