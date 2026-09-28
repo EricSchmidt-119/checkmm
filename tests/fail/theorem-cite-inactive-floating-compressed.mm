@@ -1,4 +1,4 @@
-$( Test that a theorem citing an inactive essential hypothesis is rejected. $)
+$( Test that a theorem citing an inactive floating hypothesis is rejected. $)
 
 $c |- var $.
 $v x $.
