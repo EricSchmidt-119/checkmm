@@ -413,16 +413,16 @@ Assertion & constructassertion(std::string const label, Expression const & exp)
         for (std::vector<std::set<std::string> >::const_iterator iter2
             (disjvars.begin()); iter2 != disjvars.end(); ++iter2)
         {
-            std::unordered_set<std::string> dset;
+            std::set<std::string> dset;
             std::set_intersection
                  (iter2->begin(), iter2->end(),
                   varsused.begin(), varsused.end(),
                   std::inserter(dset, dset.end()));
 
-            for (std::unordered_set<std::string>::const_iterator diter(dset.begin());
+            for (std::set<std::string>::const_iterator diter(dset.begin());
                  diter != dset.end(); ++diter)
             {
-                std::unordered_set<std::string>::const_iterator diter2(diter);
+                std::set<std::string>::const_iterator diter2(diter);
                 ++diter2;
                 for (; diter2 != dset.end(); ++diter2)
                     assertion.disjvars.insert(std::make_pair(*diter, *diter2));
