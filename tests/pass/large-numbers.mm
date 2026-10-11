@@ -4,9 +4,9 @@ $( A test case for compressed proofs. The proof contains encoded numbers
 $c |- wff -> $.
 $v A B C $.
 
-vA $f wff A $.
-vB $f wff B $.
-vC $f wff C $.
+wA $f wff A $.
+wB $f wff B $.
+wC $f wff C $.
 
 ${
   min $e |- A $.
@@ -17,7 +17,7 @@ $}
 ${
   join.1 $e |- A B $.
   join.2 $e |- B C $.
-  join   $a |- A B C $.
+  join $a |- A B C $.
 $}
 
 wcat $a wff A B $.
