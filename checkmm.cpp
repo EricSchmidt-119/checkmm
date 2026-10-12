@@ -31,7 +31,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdlib>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -1317,15 +1316,18 @@ verify_result parsev()
 
 int main(int argc, char ** argv)
 {
+    // Use a failure code different from ASAN (1)
+    constexpr int failureCode = 255;
+
     if (argc != 2)
     {
         std::cerr << "Syntax: checkmm <filename>" << std::endl;
-        return EXIT_FAILURE;
+        return failureCode;
     }
 
     bool const okay(readtokens(argv[1]));
     if (!okay)
-        return EXIT_FAILURE;
+        return failureCode;
 
     scopes.push_back(Scope());
 
@@ -1356,7 +1358,7 @@ int main(int argc, char ** argv)
             if (scopes.empty())
             {
                 std::cerr << "$} without corresponding ${" << std::endl;
-                return EXIT_FAILURE;
+                return failureCode;
             }
         }
         else if (token == "$c")
@@ -1373,7 +1375,7 @@ int main(int argc, char ** argv)
             {
                 std::cerr << "File inclusion command begun in inner scope"
                     << std::endl;
-                return EXIT_FAILURE;
+                return failureCode;
             }
         }
         else if (token == "$]")
@@ -1382,17 +1384,17 @@ int main(int argc, char ** argv)
             {
                 std::cerr << "File inclusion command ended in inner scope"
                     << std::endl;
-                return EXIT_FAILURE;
+                return failureCode;
             }
         }
         else
         {
             std::cerr << "Unexpected token " << token << " encountered"
                       << std::endl;
-            return EXIT_FAILURE;
+            return failureCode;
         }
         if (result == verify_result::Invalid)
-            return EXIT_FAILURE;
+            return failureCode;
         else if (result == verify_result::Incomplete)
             incompleteProofFound = true;
     }
@@ -1400,8 +1402,8 @@ int main(int argc, char ** argv)
     if (scopes.size() > 1)
     {
         std::cerr << "${ without corresponding $}" << std::endl;
-        return EXIT_FAILURE;
+        return failureCode;
     }
 
-    return incompleteProofFound ? EXIT_FAILURE : 0;
+    return incompleteProofFound ? failureCode : 0;
 }

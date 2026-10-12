@@ -1,14 +1,16 @@
 #!/bin/bash
 
+exename=$1
+
 result=0
 
 # Files that should pass the verifier
 cd pass || exit -1
 for mmfile in *.mm; do
-    if ../../checkmm "$mmfile"; then
-        echo "pass/$mmfile: succeeded"
+    if ../../"$exename" "$mmfile"; then
+        echo "$exename pass/$mmfile: succeeded"
     else
-        echo "pass/$mmfile: failed"
+        echo "$exename pass/$mmfile: failed"
         result=-1
     fi
 done
@@ -16,11 +18,13 @@ done
 # Files that should not pass the verifier
 cd ../fail || exit -1
 for mmfile in *.mm; do
-    if ../../checkmm "$mmfile" 2>/dev/null; then
-        echo "fail/$mmfile: failed"
+    ../../"$exename" "$mmfile" 2>/dev/null
+    testresult=$?
+    if [[ $testresult -ne 255 ]] ; then
+        echo "$exename fail/$mmfile: failed"
         result=-1
     else
-        echo "fail/$mmfile: succeeded"
+        echo "$exename fail/$mmfile: succeeded"
     fi
 done
 
