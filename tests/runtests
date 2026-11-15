@@ -5,26 +5,26 @@ exename=$1
 result=0
 
 # Files that should pass the verifier
-cd pass || exit -1
+cd accept || exit -1
 for mmfile in *.mm; do
     if ../../"$exename" "$mmfile"; then
-        echo "$exename pass/$mmfile: succeeded"
+        echo "$exename accept/$mmfile: succeeded"
     else
-        echo "$exename pass/$mmfile: failed"
+        echo "$exename accept/$mmfile: failed"
         result=-1
     fi
 done
 
 # Files that should not pass the verifier
-cd ../fail || exit -1
+cd ../reject || exit -1
 for mmfile in *.mm; do
     ../../"$exename" "$mmfile" 2>/dev/null
     testresult=$?
     if [[ $testresult -ne 255 ]] ; then
-        echo "$exename fail/$mmfile: failed"
+        echo "$exename reject/$mmfile: failed"
         result=-1
     else
-        echo "$exename fail/$mmfile: succeeded"
+        echo "$exename reject/$mmfile: succeeded"
     fi
 done
 
